@@ -3,17 +3,10 @@
 //! Its code is *heavily* inspired from that of minicp (and Oscar, and Comet, ...)
 use std::boxed::Box;
 
-/// This is the trait denoting the entries that are pushed
-/// onto the trail so as to undo all changes that have to
-/// be undone upon `pop()`.
-pub trait TrailEntry {
-    fn restore(&mut self);
-}
-
 /// This structure implements the trail, aka the reversible context.
 pub struct Trail {
     clock : usize,
-    trail : Vec< Box<dyn TrailEntry>  >,
+    trail : Vec< Box<dyn FnMut()>  >,
     limit : Vec< usize >
 }
 
@@ -29,7 +22,7 @@ impl Trail {
     }
 
     /// Callback to remember what needs to be undone upon restoration of the state
-    pub fn push_on_trail(&mut self, entry: Box<dyn TrailEntry> ) {
+    pub fn push_on_trail(&mut self, entry: Box<dyn FnMut()> ) {
         self.trail.push(entry)
     }
 
@@ -45,7 +38,7 @@ impl Trail {
     pub fn pop(&mut self) {
         let sz = self.limit.pop().unwrap_or(0);
         while self.trail.len() > sz {
-            self.trail.pop().unwrap().restore();
+            self.trail.pop().unwrap()();
         }
         self.clock += 1;
     }
