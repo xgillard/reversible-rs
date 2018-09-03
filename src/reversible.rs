@@ -135,4 +135,20 @@ mod test {
 
         assert_eq!(seed %2 == 0, a.get_value());
     }
+
+    #[test]
+    fn test_str() {
+        let trail = Rc::new(RefCell::new(Trail::new()));
+        let mut a = Reversible::new(Rc::clone(&trail), "Coucou");
+        assert_eq!("Coucou", a.get_value());
+
+        trail.borrow_mut().push();
+        a.set_value("je vais dormir");
+        trail.borrow_mut().push();
+        a.set_value("maintenant");
+
+        assert_eq!("maintenant", a.get_value());
+        trail.borrow_mut().pop_all();
+        assert_eq!("Coucou", a.get_value());
+    }
 }
