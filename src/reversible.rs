@@ -1,7 +1,7 @@
 //! This submodule provides you with the types you will be willing to use
 //! as basic types to implement the variables of your CP model.
 //! Namely, this submodule provides the following types:
-//!   - ReversibleInt (an integer (isize) whose value can be easily reset.
+//!   - Reversible (an object (primitive) whose value can be automagically reset.
 
 use std::rc::Rc;
 use std::cell::RefCell;
@@ -9,20 +9,21 @@ use std::fmt;
 
 use ::context::Trail;
 
-/// This is the reversible int abstraction. It holds a reference to its
+/// This is the reversible object abstraction. It holds a reference to its
 /// parent context. This way, it will be able to post entries on the trail.
-pub struct ReversibleInt {
+pub struct Reversible<T> {
     trail: Rc<RefCell<Trail>>,
     clock: usize,
-    value: isize
+    value: T
 }
 
-impl ReversibleInt {
-    /// Creates a new reversible int associated with the given trail and
+impl<T> Reversible<T>
+    where T: Copy + PartialEq + 'static {
+    /// Creates a new reversible object associated with the given trail and
     /// initialized with the given value.
-    pub fn new(trail: Rc<RefCell<Trail>>, initial: isize) -> ReversibleInt {
+    pub fn new(trail: Rc<RefCell<Trail>>, initial: T) -> Reversible<T> {
         let clock = trail.borrow().clock();
-        ReversibleInt {
+        Reversible {
             trail,
             clock,
             value: initial
@@ -43,13 +44,13 @@ impl ReversibleInt {
         }
     }
 
-    /// Returns the current value of the reversible integer
-    pub fn get_value(&self) -> isize {
+    /// Returns the current value of the reversible object
+    pub fn get_value(&self) -> T {
         self.value
     }
 
-    /// Changes the current value of the reversible integer
-    pub fn set_value(&mut self, v: isize) {
+    /// Changes the current value of the reversible object
+    pub fn set_value(&mut self, v: T) {
         if v != self.value {
             self.trail();
             self.value = v;
@@ -59,7 +60,7 @@ impl ReversibleInt {
 
 }
 
-impl fmt::Display for ReversibleInt {
+impl<T: fmt::Display> fmt::Display for Reversible<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Reversible({})", self.value)
     }
@@ -67,12 +68,13 @@ impl fmt::Display for ReversibleInt {
 
 #[cfg(test)]
 mod test {
+    extern crate rand;
     use super::*;
 
     #[test]
     fn test_ok(){
         let trail = Rc::new(RefCell::new(Trail::new()));
-        let mut a = ReversibleInt::new(Rc::clone(&trail), 0);
+        let mut a = Reversible::new(Rc::clone(&trail), 0);
 
         assert_eq!(trail.borrow().level(), 0);
         assert_eq!(a.get_value(), 0);
@@ -101,5 +103,36 @@ mod test {
         trail.borrow_mut().pop();
         assert_eq!(a.get_value(), 0);
         assert_eq!(trail.borrow().level(), 0);
+    }
+
+    #[test]
+    fn test_dynamic() {
+        let seed : isize = rand::random();
+
+        let trail = Rc::new(RefCell::new(Trail::new()));
+        let mut a = Reversible::new(Rc::clone(&trail), seed);
+
+
+        trail.borrow_mut().push();
+        a.set_value(42);
+        trail.borrow_mut().pop();
+
+        assert_eq!(seed, a.get_value());
+    }
+
+
+    #[test]
+    fn test_boolean() {
+        let seed : isize = rand::random();
+
+        let trail = Rc::new(RefCell::new(Trail::new()));
+        let mut a = Reversible::new(Rc::clone(&trail), seed%2 == 0);
+
+
+        trail.borrow_mut().push();
+        a.set_value(false);
+        trail.borrow_mut().pop();
+
+        assert_eq!(seed %2 == 0, a.get_value());
     }
 }
