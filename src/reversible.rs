@@ -85,13 +85,14 @@ impl<'a, T> Reversible<'a, T>
         self.value.get()
     }
 
-    /// Changes the current value of the reversible object
-    pub fn set_value(&mut self, v: T) {
+    /// Changes the current value of the reversible object.
+    /// returns the current value
+    pub fn set_value(&mut self, v: T) -> T {
         if v != self.value.get() {
             self.trail();
             self.value.set(v);
         }
-        self.value.set(v)
+        self.value.get()
     }
 
 }
