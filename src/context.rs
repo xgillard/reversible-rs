@@ -4,16 +4,21 @@
 use std::boxed::Box;
 
 /// This structure implements the trail, aka the reversible context.
-pub struct Trail {
+///
+/// # Note:
+/// The lifetime <'a> is only present to ensure that any data referred to by the
+/// restoration closures placed on the trail are still accessible when the closure
+/// is executed.
+pub struct Trail<'a> {
     clock : usize,
-    trail : Vec< Box<dyn FnMut()>  >,
+    trail : Vec< Box<dyn FnMut() + 'a>  >,
     limit : Vec< usize >
 }
 
-impl Trail {
+impl<'a> Trail<'a> {
     /// Create a new reversible context.
     /// The current level is -1
-    pub fn new() -> Trail {
+    pub fn new() -> Trail<'a> {
         Trail {
             clock: 0,
             trail: vec![],
@@ -22,7 +27,7 @@ impl Trail {
     }
 
     /// Callback to remember what needs to be undone upon restoration of the state
-    pub fn push_on_trail(&mut self, entry: Box<dyn FnMut()> ) {
+    pub fn push_on_trail(&mut self, entry: Box<dyn FnMut() + 'a> ) {
         self.trail.push(entry)
     }
 
